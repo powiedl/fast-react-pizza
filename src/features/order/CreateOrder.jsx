@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Form, redirect, useActionData, useNavigation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { getCart } from '../cart/cartSlice'
+import { clearCart, getCart } from '../cart/cartSlice'
 import { createOrder } from '../../services/apiRestaurant'
 import Button from '../../ui/Button'
 import EmptyCart from '../Cart/EmptyCart'
+import store from '../../store' // nötig, damit wir die dispatch-Funktion außerhalb von Komponenten verwenden können
+// sollte aber nur in Ausnahmefällen gemacht werden - das Leeren des carts nach der Bestellung ist so eine Ausnahme
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -18,27 +20,34 @@ function CreateOrder() {
   const isSubmitting = navigation.state === 'submitting'
 
   const formErrors = useActionData()
-
-  // const [withPriority, setWithPriority] = useState(false);
   const cart = useSelector(getCart)
-
   if (!cart.length) return <EmptyCart />
 
   return (
     <div className="px-4 py-6">
-      <h2 className="mb-8 text-xl font-semibold">Ready to order? Let's go!</h2>
+      <h2 className="mb-8 text-xl font-semibold">
+        Ready to order? Let&apos;s go!
+      </h2>
 
       {/* <Form method="POST" action="/order/new"> */}
       <Form method="POST">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="sm:basis-40">First Name</label>
-          <input className="input grow" type="text" name="customer" required />
+          <input
+            className="input grow"
+            type="text"
+            name="customer"
+            required
+            defaultValue={username}
+          />
         </div>
 
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="sm:basis-40">Phone number</label>
-          <div className="grow">
-            <input className="input w-full" type="tel" name="phone" required />
+          <div className="flex flex-col">
+            <div className="grow">
+              <input type="tel" name="phone" required className="input w-72" />
+            </div>
             {formErrors?.phone && (
               <p className="mt-2 rounded-md bg-red-100 p-2 text-xs text-red-700">
                 {formErrors.phone}
@@ -69,7 +78,7 @@ function CreateOrder() {
             // onChange={(e) => setWithPriority(e.target.checked)}
           />
           <label htmlFor="priority" className="font-medium">
-            Want to yo give your order priority?
+            Want you to give your order priority?
           </label>
         </div>
 
@@ -103,6 +112,7 @@ export async function action({ request }) {
   // If everything is okay, create new order and redirect
 
   const newOrder = await createOrder(order)
+  store.dispatch(clearCart())
   return redirect(`/order/${newOrder.id}`)
 
   //return null
